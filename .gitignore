@@ -32,8 +32,7 @@ logs
 # Prisma
 prisma/*.db
 prisma/*.db-journal
+generated
 
 # IDE
 .vscode/
-
-/src/generated/prisma
