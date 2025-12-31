@@ -4,6 +4,7 @@ import cors from 'cors'
 import passport from '@/config/passport'
 import authRoutes from '@/routes/authRoutes'
 import postRoutes from '@/routes/postRoutes'
+import userRoutes from '@/routes/userRoutes'
 
 const app = express()
 
@@ -18,6 +19,7 @@ app.get('/', (req: Request, res: Response) => {
 
 app.use('/api/auth', authRoutes)
 app.use('/api/posts', postRoutes)
+app.use('/api/users', userRoutes)
 
 app.listen(3000, () => {
   console.log(`Server running at port ${process.env.PORT}`)
