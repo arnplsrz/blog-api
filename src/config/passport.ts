@@ -18,14 +18,14 @@ const opts: StrategyOptions = {
 export default passport.use(
   new Strategy(opts, async (payload: JwtPayload, done: VerifiedCallback) => {
     try {
-      const userId = payload.userId || payload.sub
+      const sub = payload.sub
 
-      if (!userId || typeof userId !== 'string') {
+      if (!sub || typeof sub !== 'string') {
         return done(null, false)
       }
 
       const user = await prisma.user.findUnique({
-        where: { id: userId },
+        where: { id: sub },
         select: {
           id: true,
           email: true,

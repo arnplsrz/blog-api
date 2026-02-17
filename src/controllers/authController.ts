@@ -94,18 +94,29 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const signOptions: SignOptions = { expiresIn: JWT_EXPIRES_IN }
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, signOptions)
+    jwt.sign(
+      { sub: user.id, role: user.role },
+      JWT_SECRET,
+      signOptions,
+      (error, token) => {
+        if (error) {
+          console.error('Login error:', error)
+          return res.status(500).json({ error: 'Internal server error' })
+        } else {
+          return res.status(200).json({
+            message: 'Login successful',
+            user: {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              role: user.role,
+            },
+            token,
+          })
+        }
+      }
+    )
 
-    return res.status(200).json({
-      message: 'Login successful',
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-      },
-      token,
-    })
   } catch (error) {
     console.error('Login error:', error)
     return res.status(500).json({ error: 'Internal server error' })
