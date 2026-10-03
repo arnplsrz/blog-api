@@ -1,5 +1,6 @@
 import { Request, Response } from 'express'
 import { prisma } from '@/lib/prisma'
+import { sanitizeContent, textLength } from '@/lib/sanitize'
 
 /**
  * Create a new post
@@ -22,7 +23,7 @@ export const createPost = async (req: Request, res: Response) => {
       })
     }
 
-    if (content.length < 10) {
+    if (typeof content !== 'string' || textLength(content) < 10) {
       return res.status(400).json({
         error: 'Content must be at least 10 characters long',
       })
@@ -32,7 +33,7 @@ export const createPost = async (req: Request, res: Response) => {
     const post = await prisma.post.create({
       data: {
         title,
-        content,
+        content: sanitizeContent(content),
         published: published === true, // Explicit boolean conversion
         authorId: req.user!.id,
       },
@@ -72,15 +73,20 @@ export const createPost = async (req: Request, res: Response) => {
  */
 export const getPosts = async (req: Request, res: Response) => {
   try {
-    const { page = '1', limit = '10' } = req.query
+    const { page = '1', limit = '10', status } = req.query
 
     // Parse pagination
     const pageNum = Math.max(1, parseInt(page as string, 10))
     const limitNum = Math.min(100, Math.max(1, parseInt(limit as string, 10)))
     const skip = (pageNum - 1) * limitNum
 
-    // Only show published posts
-    const where = { published: true }
+    const isAuthor = req.user?.role === 'AUTHOR'
+    const where =
+      isAuthor && status === 'draft'
+        ? { published: false }
+        : isAuthor && status === 'all'
+          ? {}
+          : { published: true }
 
     const [posts, total] = await Promise.all([
       prisma.post.findMany({
@@ -92,6 +98,7 @@ export const getPosts = async (req: Request, res: Response) => {
           published: true,
           createdAt: true,
           updatedAt: true,
+          _count: { select: { comments: true } },
           author: {
             select: {
               id: true,
@@ -177,8 +184,7 @@ export const getPostById = async (req: Request, res: Response) => {
 
     // Check if post is unpublished
     if (!post.published) {
-      // Only allow author to view unpublished post
-      if (!req.user || post.author.id !== req.user.id) {
+      if (req.user?.role !== 'AUTHOR') {
         return res.status(404).json({ error: 'Post not found' })
       }
     }
@@ -215,12 +221,12 @@ export const updatePost = async (req: Request, res: Response) => {
     }
 
     if (content !== undefined) {
-      if (content.length < 10) {
+      if (typeof content !== 'string' || textLength(content) < 10) {
         return res.status(400).json({
           error: 'Content must be at least 10 characters long',
         })
       }
-      updateData.content = content
+      updateData.content = sanitizeContent(content)
     }
 
     if (published !== undefined) {
