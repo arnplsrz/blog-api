@@ -9,9 +9,15 @@ import commentRoutes from '@/routes/commentRoutes'
 import helmet from 'helmet'
 import cookieParser from 'cookie-parser'
 
+if (!process.env.ALLOWED_ORIGINS) {
+  throw new Error('ALLOWED_ORIGINS must be defined')
+}
+
+const PORT = Number(process.env.PORT) || 3000
+
 const app = express()
 
-app.use(cors({ origin: process.env.ALLOWED_ORIGINS?.split(','), credentials: true }))
+app.use(cors({ origin: process.env.ALLOWED_ORIGINS.split(','), credentials: true }))
 app.use(express.json({ limit: '2mb' }))
 app.use(express.urlencoded({ extended: true }))
 app.use(passport.initialize())
@@ -27,6 +33,6 @@ app.use('/api/posts', postRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/comments', commentRoutes)
 
-app.listen(3000, () => {
-  console.log(`Server running at port ${process.env.PORT}`)
+app.listen(PORT, () => {
+  console.log(`Server running at port ${PORT}`)
 })
