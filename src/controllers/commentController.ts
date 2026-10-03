@@ -87,9 +87,7 @@ export const deleteComment = async (req: Request, res: Response) => {
         ids = children.map((c) => c.id)
         all.push(...ids)
       }
-      for (const id of all.reverse()) {
-        await tx.comment.delete({ where: { id } })
-      }
+      await tx.comment.deleteMany({ where: { id: { in: all } } })
     })
 
     return res.status(200).json({ message: 'Comment deleted successfully' })
