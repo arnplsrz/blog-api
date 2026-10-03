@@ -30,6 +30,8 @@ const JWT_SECRET = process.env.JWT_SECRET
 const JWT_EXPIRES_IN = Number(process.env.JWT_EXPIRES_IN)
 const REFRESH_SECRET = process.env.REFRESH_SECRET
 const REFRESH_MS = Number(process.env.REFRESH_MS)
+const REFRESH_GRACE_MS = 10_000
+const DUMMY_HASH = bcrypt.hashSync('dummy', BCRYPT_ROUNDS)
 
 const refreshCookieOptions: CookieOptions = {
   httpOnly: true,
@@ -41,6 +43,14 @@ const refreshCookieOptions: CookieOptions = {
 const userSelect = { id: true, email: true, name: true, role: true } as const
 
 const issueTokens = async (res: Response, user: { id: string; role: Role }) => {
+  const now = Date.now()
+  await prisma.refreshToken.deleteMany({
+    where: {
+      userId: user.id,
+      OR: [{ expiresAt: { lt: new Date(now) } }, { usedAt: { lt: new Date(now - REFRESH_GRACE_MS) } }],
+    },
+  })
+
   const row = await prisma.refreshToken.create({
     data: { userId: user.id, expiresAt: new Date(Date.now() + REFRESH_MS) },
   })
@@ -58,7 +68,7 @@ export const register = async (req: Request, res: Response) => {
   try {
     const { email, password, name } = req.body
 
-    if (!email || !password) {
+    if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
       return res.status(400).json({ error: 'Email and password are required' })
     }
 
@@ -105,7 +115,7 @@ export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body
 
-    if (!email || !password) {
+    if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
       return res.status(400).json({ error: 'Email and password are required' })
     }
 
@@ -113,7 +123,8 @@ export const login = async (req: Request, res: Response) => {
       where: { email },
     })
 
-    if (!found || !(await bcrypt.compare(password, found.password))) {
+    const valid = await bcrypt.compare(password, found?.password ?? DUMMY_HASH)
+    if (!found || !valid) {
       return res.status(401).json({ error: 'Invalid email or password' })
     }
 
@@ -130,7 +141,12 @@ export const login = async (req: Request, res: Response) => {
 export const refresh = async (req: Request, res: Response) => {
   try {
     const { sub, jti } = jwt.verify(req.cookies.refreshToken, REFRESH_SECRET) as JwtPayload
-    await prisma.refreshToken.delete({ where: { id: jti } })
+    const row = await prisma.refreshToken.findUniqueOrThrow({ where: { id: jti } })
+    if (!row.usedAt) {
+      await prisma.refreshToken.update({ where: { id: jti }, data: { usedAt: new Date() } })
+    } else if (Date.now() - row.usedAt.getTime() > REFRESH_GRACE_MS) {
+      throw new Error('Refresh token reused')
+    }
     const user = await prisma.user.findUniqueOrThrow({ where: { id: sub }, select: userSelect })
     const accessToken = await issueTokens(res, user)
     return res.json({ accessToken, user })
