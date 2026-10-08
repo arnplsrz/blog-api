@@ -37,6 +37,44 @@ export const getComments = async (req: Request, res: Response) => {
   }
 }
 
+export const createComment = async (req: Request, res: Response) => {
+  try {
+    const { content } = req.body
+    const postId = req.params.id as string
+
+    if (typeof content !== 'string' || !content.trim()) {
+      return res.status(400).json({ error: 'Content is required' })
+    }
+
+    if (content.trim().length > 2000) {
+      return res.status(400).json({ error: 'Comment must be at most 2000 characters' })
+    }
+
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+      select: { published: true },
+    })
+    if (!post?.published) {
+      return res.status(404).json({ error: 'Post not found' })
+    }
+
+    const comment = await prisma.comment.create({
+      data: { content: content.trim(), postId, authorId: req.user!.id },
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        author: { select: { id: true, name: true } },
+      },
+    })
+
+    return res.status(201).json({ message: 'Comment created successfully', comment })
+  } catch (error) {
+    console.error('Create comment error:', error)
+    return res.status(500).json({ error: 'Internal server error' })
+  }
+}
+
 export const updateComment = async (req: Request, res: Response) => {
   try {
     const { content } = req.body

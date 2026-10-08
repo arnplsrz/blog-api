@@ -8,6 +8,7 @@ import {
   updatePost,
   deletePost,
 } from '@/controllers/postController'
+import { createComment } from '@/controllers/commentController'
 
 const router = Router()
 
@@ -37,5 +38,7 @@ router.delete(
   requireAuthor,
   deletePost
 )
+
+router.post('/:id/comments', passport.authenticate('jwt', { session: false }), createComment)
 
 export default router
