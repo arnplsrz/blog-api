@@ -5,9 +5,9 @@ import { getComments, updateComment, deleteComment } from '@/controllers/comment
 
 const router = Router()
 
-router.use(passport.authenticate('jwt', { session: false }), requireAuthor)
+router.use(passport.authenticate('jwt', { session: false }))
 
-router.get('/', getComments)
+router.get('/', requireAuthor, getComments)
 router.patch('/:id', updateComment)
 router.delete('/:id', deleteComment)
 
