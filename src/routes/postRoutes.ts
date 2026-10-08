@@ -1,7 +1,6 @@
 import { Router } from 'express'
 import passport from 'passport'
-import { requireAuthor } from '@/middlewares/auth'
-import { requirePostOwnership } from '@/middlewares/postOwnership'
+import { optionalAuth, requireAuthor } from '@/middlewares/auth'
 import {
   createPost,
   getPosts,
@@ -13,8 +12,8 @@ import {
 const router = Router()
 
 // Public routes - anyone can view published posts
-router.get('/', getPosts)
-router.get('/:id', getPostById)
+router.get('/', optionalAuth, getPosts)
+router.get('/:id', optionalAuth, getPostById)
 
 // Protected routes - require authentication and AUTHOR role
 router.post(
@@ -29,7 +28,6 @@ router.patch(
   '/:id',
   passport.authenticate('jwt', { session: false }),
   requireAuthor,
-  requirePostOwnership,
   updatePost
 )
 
@@ -37,7 +35,6 @@ router.delete(
   '/:id',
   passport.authenticate('jwt', { session: false }),
   requireAuthor,
-  requirePostOwnership,
   deletePost
 )
 

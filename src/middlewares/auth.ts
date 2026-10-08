@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
+import passport from 'passport'
 import { Role } from '@generated/prisma/client'
 
 // Extend Express Request to include user from passport
@@ -11,6 +12,13 @@ declare global {
       role: Role
     }
   }
+}
+
+export const optionalAuth = (req: Request, res: Response, next: NextFunction) => {
+  passport.authenticate('jwt', { session: false }, (_err: unknown, user: Express.User | false) => {
+    if (user) req.user = user
+    next()
+  })(req, res, next)
 }
 
 /**

@@ -78,7 +78,7 @@ export const updateCurrentUser = async (req: Request, res: Response) => {
 
     // Validate email and add if provided
     if (email !== undefined) {
-      if (typeof password !== 'string' || !email.includes('@')) {
+      if (typeof email !== 'string' || !email.includes('@')) {
         return res.status(400).json({ error: 'Invalid email' })
       }
       updateData.email = email
