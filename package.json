@@ -4,6 +4,7 @@
   "description": "Blog API with Express, TypeScript, Prisma, and JWT authentication",
   "main": "dist/server.js",
   "type": "module",
+  "packageManager": "pnpm@11.24.0",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "node dist/src/server.js",
